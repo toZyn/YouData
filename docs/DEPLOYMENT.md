@@ -44,3 +44,37 @@ await client.set('records', 'record-1', { status: 'ready' });
 ## Scaling boundary
 
 One server can serve multiple processes and concurrent connections. Horizontal database scaling requires multiple database servers, replication, node identity, failover, and shard routing. Those are separate distributed-system features and must not be simulated by opening one file from multiple processes.
+
+## TLS TCP
+
+Pass certificate material to the server to enable TLS for TCP connections:
+
+```js
+import fs from 'node:fs';
+import { YouDataServer } from 'youdata/server';
+
+const server = new YouDataServer('./data/main.ydb', {
+  tls: {
+    key: fs.readFileSync(process.env.YOUDATA_TLS_KEY),
+    cert: fs.readFileSync(process.env.YOUDATA_TLS_CERT),
+    requestCert: true,
+    rejectUnauthorized: true,
+    ca: fs.readFileSync(process.env.YOUDATA_TLS_CA)
+  }
+});
+await server.start();
+```
+
+TLS protects the transport; application authentication remains token-based.
+
+## Client pool
+
+Use `YouDataClientPool` when one application process needs several concurrent connections:
+
+```js
+import { YouDataClientPool } from 'youdata/pool';
+
+const pool = new YouDataClientPool({ size: 8 });
+await pool.connect();
+await pool.auth(process.env.YOUDATA_USER, process.env.YOUDATA_PASSWORD);
+```

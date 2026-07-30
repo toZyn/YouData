@@ -61,6 +61,9 @@ See [`LICENSE`](LICENSE) for the complete terms. Copyright © 2026 SoyMaycol (Zy
 
 For multiple processes, run `youdata-server` and connect using `YouDataClient`. The server is the single owner of the `.ydb` file and serializes writes through a TCP JSON protocol. Direct `open()` remains intended for one process.
 
-Server mode includes TTL, pub/sub, and lightweight persisted lists, sets, and hashes. It is not wire-compatible with Redis and does not claim full SQL, replication, failover, or cluster support.
+YouData is general-purpose: it supports application data, services, automation, analytics, content, games, collaboration, and real-time systems. Server mode includes TCP, HTTP, WebSocket, TTL, pub/sub, persisted lists, sets, hashes, counters, batch reads, schemas, indexes, WAL recovery, and transactions. Its APIs are native YouData APIs, not claims of wire compatibility with Redis or MySQL.
 
 See [`docs/SERVER.md`](docs/SERVER.md).
+
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the storage, transport, correctness, and distributed-system boundaries.

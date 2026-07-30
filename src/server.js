@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import net from 'node:net';
+import tls from 'node:tls';
 import http from 'node:http';
 import crypto from 'node:crypto';
 import { open } from './index.js';
@@ -12,7 +13,10 @@ export class YouDataServer {
     this.host = options.host ?? '127.0.0.1';
     this.port = options.port ?? 6380;
     this.httpPort = options.httpPort ?? this.port + 1;
-    this.server = net.createServer(socket => this._connection(socket));
+    this.tls = options.tls ?? null;
+    this.server = this.tls?.key && this.tls?.cert
+      ? tls.createServer({ key: this.tls.key, cert: this.tls.cert, ca: this.tls.ca, requestCert: this.tls.requestCert ?? false, rejectUnauthorized: this.tls.rejectUnauthorized ?? false }, socket => this._connection(socket))
+      : net.createServer(socket => this._connection(socket));
     this.httpServer = http.createServer((request, response) => this._http(request, response));
     this.wsClients = new Set();
     this.clients = new Set();

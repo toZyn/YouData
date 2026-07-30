@@ -29,11 +29,11 @@ console.log(users.find({ plan: 'free' }));
 db.close();
 ```
 
-Embedded mode is intended for one process opening a database file directly.
+Embedded mode is intended for one process opening a database file directly. Do not open the same `.ydb` file from several application processes.
 
 ## Server mode
 
-For multiple processes and concurrent clients, start one server as the owner of the `.ydb` file:
+For multiple application processes and concurrent clients, start one server as the owner of the `.ydb` file. This is the supported multiprocess mode:
 
 ```bash
 youdata-server ./data/main.ydb
@@ -54,7 +54,7 @@ await client.set('users', 'maycol', { name: 'Maycol' });
 const user = await client.get('users', 'maycol');
 ```
 
-Server mode provides TCP, HTTP JSON, native WebSocket transport, concurrent reads, serialized durable writes, authentication, request limits, and Pub/Sub.
+Server mode is the multiprocess architecture. It provides TCP, HTTP JSON, native WebSocket transport, concurrent reads, serialized durable writes, authentication, request limits, and Pub/Sub. Multiple application processes communicate through the server; only the server opens the database file.
 
 ## Data operations
 
@@ -115,4 +115,4 @@ YouData is designed as a general-purpose platform rather than a product limited 
 
 YouData is distributed under the **YouData Personal Use License**. See [`LICENSE`](LICENSE) for the complete terms. Copyright © 2026 SoyMaycol (Zyn).
 
-See [`docs/SERVER.md`](docs/SERVER.md) and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the complete architecture and server API.
+See [`docs/SERVER.md`](docs/SERVER.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the complete architecture, multiprocess deployment, and server API.

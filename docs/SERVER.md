@@ -54,3 +54,16 @@ These are server-managed operations, not claims of full Redis protocol compatibi
 ## Concurrency boundary
 
 Direct `open()` remains a single-process API. For multiple processes, run one `YouDataServer` process and connect with `YouDataClient`. This avoids concurrent direct file access and serializes mutations. Replication, failover, clustering, SQL joins, and a complete ACID isolation engine are not included in this release.
+
+## SQL API
+
+Server clients can execute the constrained SQL API:
+
+```js
+await client.sql("SELECT * FROM users WHERE age >= 18 LIMIT 20");
+await client.sql("INSERT INTO users (name, age) VALUES ('Maycol', 25)");
+await client.sql("UPDATE users SET age = 26 WHERE name = 'Maycol'");
+await client.sql("DELETE FROM users WHERE name = 'Maycol'");
+```
+
+This is not full MySQL compatibility. It intentionally supports basic single-collection operations only.

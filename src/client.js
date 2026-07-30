@@ -57,6 +57,8 @@ export class YouDataClient {
   async auth(username, password) { const session = await this.request('auth', { username, password }); this.token = session.token; return session; }
   get(collection, key) { return this.request('get', { collection, key }); }
   set(collection, key, value, options) { return this.request('set', { collection, key, value, options }); }
+  setnx(collection, key, value, options) { return this.request('setnx', { collection, key, value, options }); }
+  incr(collection, key, amount = 1) { return this.request('incr', { collection, key, amount }); }
   add(collection, value) { return this.request('add', { collection, value }); }
   delete(collection, key) { return this.request('delete', { collection, key }); }
   find(collection, query, options) { return this.request('find', { collection, query, options }); }

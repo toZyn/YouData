@@ -6,7 +6,7 @@ YouData is a general-purpose database and application data platform. Its scope i
 
 The `.ydb` format is a portable single file with append-only WAL records, checkpointing, recovery, TTL metadata, schemas, indexes, and local transactions.
 
-Direct `open()` access is a single-process mode. Multi-process applications use one server process as the file owner and connect through network clients.
+Direct `open()` access is a single-process mode. Multi-process applications use one server process as the file owner and connect through network clients. This prevents independent processes from competing for the file lock while still allowing many application processes to manage the same database concurrently.
 
 ## Data model
 

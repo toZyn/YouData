@@ -1,17 +1,67 @@
 {
   "name": "youdata",
   "version": "0.2.0",
-  "description": "A compact single-file embedded database with WAL recovery, schemas, transactions, gateways, and CLI tools.",
+  "description": "YouData is a fast, lightweight, compact single-file embedded database for Node.js with WAL recovery, schemas, transactions, gateways, and CLI tools.",
   "type": "module",
   "main": "src/index.js",
-  "bin": { "youdata": "src/cli.js" },
+  "bin": {
+    "youdata": "src/cli.js"
+  },
   "exports": {
     ".": "./src/index.js",
     "./schema": "./src/schema.js"
   },
-  "engines": { "node": ">=18" },
-  "scripts": { "test": "node --test" },
-  "keywords": ["database", "embedded-database", "single-file", "wal", "gateway", "cli"],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "youdata",
+    "database",
+    "database-engine",
+    "embedded-database",
+    "embedded-db",
+    "nodejs-database",
+    "node-database",
+    "javascript-database",
+    "single-file-database",
+    "lightweight-database",
+    "fast-database",
+    "local-database",
+    "file-database",
+    "wal",
+    "write-ahead-log",
+    "transactions",
+    "schemas",
+    "database-schema",
+    "gateway",
+    "database-cli",
+    "cli",
+    "nodejs",
+    "javascript"
+  ],
+  "author": {
+    "name": "Zyn",
+    "url": "https://github.com/toZyn"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/toZyn/youdata.git"
+  },
+  "bugs": {
+    "url": "https://github.com/toZyn/youdata/issues"
+  },
+  "homepage": "https://github.com/toZyn/youdata#readme",
   "license": "MIT",
-  "files": ["src", "docs", "README.md", "LICENSE"]
+  "files": [
+    "src",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

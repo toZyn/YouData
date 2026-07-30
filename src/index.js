@@ -450,7 +450,7 @@ export class YouData {
   }
 
   _write(record) {
-    const body = encode(record);
+    const body = Buffer.from(JSON.stringify(record));
     this.wal.append(body);
     this._walRecords.push(record);
     this._writeCount++;
@@ -463,7 +463,7 @@ export class YouData {
   }
 
   _persistBatch(records) {
-    const buffers = records.map(r => encode(r));
+    const buffers = records.map(r => Buffer.from(JSON.stringify(r)));
     this.wal.appendBatch(buffers);
     this._walRecords.push(...records);
     this._writeCount += records.length;

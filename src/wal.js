@@ -22,6 +22,18 @@ function frame(buffer) {
   return result;
 }
 
+function payload(buffer) {
+  try {
+    return JSON.parse(buffer.toString('utf8'));
+  } catch (error) {
+    if (buffer.length >= 4) {
+      const size = buffer.readUInt32BE(0);
+      if (size === buffer.length - 4) return JSON.parse(buffer.subarray(4).toString('utf8'));
+    }
+    throw error;
+  }
+}
+
 export class WAL {
   constructor(file, options = {}) {
     this.path = path.resolve(file) + '.wal';
@@ -70,7 +82,7 @@ export class WAL {
       if (data.length - offset - HEADER_SIZE < size) break;
       const raw = data.subarray(offset + HEADER_SIZE, offset + HEADER_SIZE + size);
       if (crc32(raw) !== expected) throw new Error(`WAL checksum mismatch at offset ${offset}`);
-      records.push(JSON.parse(raw.toString('utf8')));
+      records.push(payload(raw));
       offset += HEADER_SIZE + size;
     }
     return records;

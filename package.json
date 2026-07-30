@@ -1,7 +1,7 @@
 {
   "name": "youdata",
-  "version": "0.5.0",
-  "description": "Concurrent single-file database server with TCP, HTTP, native WebSocket, pub/sub, TTL, data structures, and SQL API.",
+  "version": "0.6.0",
+  "description": "Universal concurrent single-file database platform with TCP, HTTP, WebSocket, pub/sub, TTL, data structures, SQL API, WAL recovery, schemas, indexes, and transactions.",
   "type": "module",
   "main": "src/index.js",
   "bin": {

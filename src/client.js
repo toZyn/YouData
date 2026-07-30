@@ -60,6 +60,7 @@ export class YouDataClient {
   add(collection, value) { return this.request('add', { collection, value }); }
   delete(collection, key) { return this.request('delete', { collection, key }); }
   find(collection, query, options) { return this.request('find', { collection, query, options }); }
+  sql(statement) { return this.request('sql', { statement }); }
   publish(channel, message) { return this.request('publish', { channel, message }); }
   async subscribe(channel, handler) { if (!this.events.has(channel)) this.events.set(channel, new Set()); this.events.get(channel).add(handler); return this.request('subscribe', { channel }); }
   unsubscribe(channel, handler) { this.events.get(channel)?.delete(handler); return this.request('unsubscribe', { channel }); }

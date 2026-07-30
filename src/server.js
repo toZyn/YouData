@@ -164,7 +164,7 @@ export class YouDataServer {
     if (op === 'get') return this._reply(client, id, this.db.collection(args.collection).get(args.key));
     if (op === 'set') { this.db.collection(args.collection).set(args.key, args.value, args.options); return this._reply(client, id, true); }
     if (op === 'setnx') { const col = this.db.collection(args.collection); if (col.has(args.key)) return this._reply(client, id, false); col.set(args.key, args.value, args.options); return this._reply(client, id, true); }
-    if (op === 'incr') { const col = this.db.collection(args.collection); const current = col.get(args.key); const value = current === undefined ? 0 : current.value; if (current && current.__youdataType !== 'counter') return this._reply(client, id, null, 'Value is not numeric'); const next = value + Number(args.amount ?? 1); if (!Number.isFinite(next)) return this._reply(client, id, null, 'Amount is not numeric'); col.set(args.key, { __youdataType: 'counter', value: next }); return this._reply(client, id, next); }
+    if (op === 'incr') { const next = this.db.collection(args.collection).incr(args.key, Number(args.amount ?? 1)); return this._reply(client, id, next); }
     if (op === 'add') return this._reply(client, id, this.db.collection(args.collection).addWithKey(args.value));
     if (op === 'delete') return this._reply(client, id, this.db.collection(args.collection).delete(args.key));
     if (op === 'find') return this._reply(client, id, this.db.collection(args.collection).find(args.query || {}, args.options || {}));

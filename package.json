@@ -1,16 +1,48 @@
 {
   "name": "youdata",
-  "version": "0.3.0",
-  "description": "Concurrent single-file embedded database with a TCP server, TTL, pub/sub, data structures, WAL recovery, schemas, and transactions.",
+  "version": "0.3.1",
+  "description": "Concurrent single-file embedded database server for Node.js with TCP clients, TTL, pub/sub, data structures, WAL recovery, schemas, and transactions.",
   "type": "module",
   "main": "src/index.js",
-  "bin": { "youdata": "src/cli.js", "youdata-server": "src/server.js" },
-  "exports": { ".": "./src/index.js", "./schema": "./src/schema.js", "./server": "./src/server.js", "./client": "./src/client.js" },
-  "engines": { "node": ">=18" },
-  "scripts": { "test": "node --test" },
-  "keywords": ["database", "embedded-database", "single-file", "tcp", "concurrency", "ttl", "pubsub", "transactions"],
-  "author": { "name": "SoyMaycol (Zyn)", "url": "https://github.com/toZyn" },
-  "repository": { "type": "git", "url": "https://github.com/toZyn/YouData.git" },
+  "bin": {
+    "youdata": "src/cli.js",
+    "youdata-server": "src/server.js"
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./schema": "./src/schema.js",
+    "./server": "./src/server.js",
+    "./client": "./src/client.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "database",
+    "embedded-database",
+    "single-file",
+    "tcp",
+    "concurrency",
+    "ttl",
+    "pubsub",
+    "transactions"
+  ],
+  "author": {
+    "name": "SoyMaycol (Zyn)",
+    "url": "https://github.com/toZyn"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/toZyn/YouData.git"
+  },
   "license": "SEE LICENSE IN LICENSE",
-  "files": ["src", "docs", "README.md", "LICENSE"]
+  "files": [
+    "src",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ]
 }

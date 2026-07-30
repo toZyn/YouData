@@ -15,6 +15,19 @@ test('WAL recovers complete records and ignores an incomplete tail', () => {
   assert.deepEqual(new WAL(file).readAll(), [{ op: 'set', key: 'a' }]);
 });
 
+test('WAL v2 reads legacy encode payloads inside frames', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'youdata-wal-'));
+  const file = path.join(dir, 'db.ydb');
+  const value = Buffer.from(JSON.stringify({ op: 'set', key: 'a' }));
+  const encoded = Buffer.alloc(4 + value.length);
+  encoded.writeUInt32BE(value.length, 0);
+  value.copy(encoded, 4);
+  const wal = new WAL(file).open();
+  wal.append(encoded);
+  wal.close();
+  assert.deepEqual(new WAL(file).readAll(), [{ op: 'set', key: 'a' }]);
+});
+
 test('WAL rejects a checksum mismatch', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'youdata-wal-'));
   const file = path.join(dir, 'db.ydb');

@@ -99,6 +99,11 @@ export class Collection {
 
   add(value, key = value.id ?? crypto.randomUUID()) { return this.set(key, value); }
 
+  addWithKey(value, key = value.id ?? crypto.randomUUID()) {
+    this.set(key, value);
+    return key;
+  }
+
   delete(key) {
     if (!this.has(key)) return false;
     const sk = String(key);

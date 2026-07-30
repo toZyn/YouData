@@ -1,28 +1,102 @@
 # YouData
 
-YouData is an open-source, single-file embedded database for Node.js. It is built from scratch with a compact append-only binary log, in-memory indexes, deterministic compaction, collections, queries, accounts, an HTTP Gateway, and a global CLI.
+YouData is a universal single-file database and concurrent application data server for Node.js. It supports local embedded use and a server mode for applications, APIs, automation, analytics, content, games, collaboration, and real-time systems.
+
+## Version
+
+```text
+0.3.0
+```
 
 ## Install
 
 ```bash
 npm install youdata
-npm install -g youdata
 ```
 
-## Library
+## Embedded mode
 
 ```js
 import { open } from 'youdata';
 
 const db = open('./data/main.ydb');
 const users = db.collection('users');
+
 users.set('maycol', { name: 'Maycol', plan: 'free' });
 console.log(users.get('maycol'));
 console.log(users.find({ plan: 'free' }));
 
-db.createAccount('admin', 'change-this-password', 'admin');
-db.gateway({ port: 6380 }).start();
+db.close();
 ```
+
+Embedded mode is intended for one process opening a database file directly.
+
+## Server mode
+
+For multiple processes and concurrent clients, start one server as the owner of the `.ydb` file:
+
+```bash
+youdata-server ./data/main.ydb
+```
+
+Connect from Node.js:
+
+```js
+import { YouDataClient } from 'youdata/client';
+
+const client = new YouDataClient({
+  host: '127.0.0.1',
+  port: 6380
+});
+
+await client.auth('admin', 'password');
+await client.set('users', 'maycol', { name: 'Maycol' });
+const user = await client.get('users', 'maycol');
+```
+
+Server mode provides TCP, HTTP JSON, native WebSocket transport, concurrent reads, serialized durable writes, authentication, request limits, and Pub/Sub.
+
+## Data operations
+
+```js
+const values = db.collection('values');
+
+values.set('name', 'Maycol');
+values.set('enabled', true);
+values.set('views', 0);
+values.incr('views', 1);
+values.setnx('unique-key', { created: true });
+values.mget(['name', 'views']);
+values.setWithTTL('temporary', { active: true }, 60_000);
+```
+
+Collections also support queries, schemas, indexes, transactions, lists, sets, hashes, and generated keys through `addWithKey()`.
+
+## SQL API
+
+The server includes a small SQL compatibility API for basic single-collection operations:
+
+```js
+await client.sql("SELECT * FROM users WHERE age >= 18 LIMIT 20");
+await client.sql("INSERT INTO users (name, age) VALUES ('Maycol', 25)");
+await client.sql("UPDATE users SET age = 26 WHERE name = 'Maycol'");
+await client.sql("DELETE FROM users WHERE name = 'Maycol'");
+```
+
+This is a native constrained API, not full MySQL protocol compatibility.
+
+## Persistence and correctness
+
+- Portable single `.ydb` file
+- Append-only WAL
+- Checkpointing and recovery
+- In-memory indexes
+- TTL metadata
+- Schemas and validation
+- Local transactions
+- Serialized server writes
+- Concurrent server reads
+- No runtime dependencies
 
 ## CLI
 
@@ -30,40 +104,15 @@ db.gateway({ port: 6380 }).start();
 youdata init ./data/main.ydb
 youdata stats ./data/main.ydb
 youdata compact ./data/main.ydb
-youdata account create admin change-this-password admin ./data/main.ydb
-youdata gateway 6380 ./data/main.ydb
 youdata shell ./data/main.ydb
 ```
 
-The file is a portable `.ydb` binary containing the complete database. Writes are appended for speed. `compact` removes obsolete records and rebuilds a minimal file without ZIP, GZip, or third-party storage engines.
+## Scope
 
-## Design
-
-- Single portable database file
-- Custom length-prefixed binary records
-- Append-only writes for fast mutation
-- In-memory Map indexes for constant-time key access
-- Explicit compaction for minimal storage
-- Collections with `get`, `set`, `add`, `delete`, `find`, `first`, `count`, and iteration
-- Built-in account credentials and bearer sessions
-- Optional HTTP Gateway for external services
-- Zero runtime dependencies
+YouData is designed as a general-purpose platform rather than a product limited to one application category. Replication, automatic failover, distributed consensus, sharding, and cluster coordination require a multi-node protocol and dedicated failure-injection tests; they are not implied by the single-server mode.
 
 ## License
 
-YouData is distributed under the **YouData Personal Use License**.
+YouData is distributed under the **YouData Personal Use License**. See [`LICENSE`](LICENSE) for the complete terms. Copyright © 2026 SoyMaycol (Zyn).
 
-You may use and modify it for personal, private, and non-commercial purposes. Private forks and private copies are allowed. You may not publish, redistribute, sublicense, sell, release, or offer the original or a modified fork as a public package, public service, hosted service, or commercial product.
-
-See [`LICENSE`](LICENSE) for the complete terms. Copyright © 2026 SoyMaycol (Zyn).
-
-## Concurrent server mode
-
-For multiple processes, run `youdata-server` and connect using `YouDataClient`. The server is the single owner of the `.ydb` file and serializes writes through a TCP JSON protocol. Direct `open()` remains intended for one process.
-
-YouData is general-purpose: it supports application data, services, automation, analytics, content, games, collaboration, and real-time systems. Server mode includes TCP, HTTP, WebSocket, TTL, pub/sub, persisted lists, sets, hashes, counters, batch reads, schemas, indexes, WAL recovery, and transactions. Its APIs are native YouData APIs, not claims of wire compatibility with Redis or MySQL.
-
-See [`docs/SERVER.md`](docs/SERVER.md).
-
-
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the storage, transport, correctness, and distributed-system boundaries.
+See [`docs/SERVER.md`](docs/SERVER.md) and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the complete architecture and server API.

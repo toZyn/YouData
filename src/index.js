@@ -227,12 +227,12 @@ class Transaction {
     if (record.op === 'set') {
       const oldEntry = col.get(record.key);
       this._snapshots.push({ collection: record.collection, key: record.key, old: oldEntry ? { value: JSON.parse(JSON.stringify(oldEntry.value)), timestamp: oldEntry.timestamp } : null });
-      col.set(record.key, { value: record.value, timestamp: Date.now() });
+      this.db._apply(record);
     }
     if (record.op === 'delete') {
       const oldEntry = col.get(record.key);
       this._snapshots.push({ collection: record.collection, key: record.key, old: oldEntry ? { value: JSON.parse(JSON.stringify(oldEntry.value)), timestamp: oldEntry.timestamp } : null });
-      col.delete(record.key);
+      this.db._apply(record);
     }
   }
 
@@ -256,7 +256,7 @@ class Transaction {
     if (this.closed) throw new Error('Transaction is closed');
     this.closed = true;
     if (this.records.length === 0) return;
-    this.db._writeBatch(this.records);
+    this.db._persistBatch(this.records);
   }
 
   rollback() {
@@ -264,8 +264,9 @@ class Transaction {
     this.closed = true;
     for (const snap of this._snapshots.reverse()) {
       const col = this.db._collection(snap.collection);
-      if (snap.old) col.set(snap.key, snap.old);
-      else col.delete(snap.key);
+      const current = col.get(snap.key);
+      if (snap.old) { col.set(snap.key, snap.old); this.db._updateIndexes(snap.collection, snap.key, snap.old.value, current?.value); }
+      else { col.delete(snap.key); this.db._updateIndexes(snap.collection, snap.key, null, current?.value); }
     }
   }
 }
@@ -314,8 +315,9 @@ export class YouData {
     this._writeCount = 0;
     this.metrics = new MetricsCollector();
     this.lock = new FileLock(this.file);
+    if (!this.lock.acquire()) throw new Error(`Cannot acquire lock on ${this.file}. Another process may be using it.`);
     this.wal = new WAL(this.file);
-    this._open();
+    try { this._open(); } catch (error) { this.lock.release(); throw error; }
   }
 
   _open() {
@@ -420,12 +422,12 @@ export class YouData {
     }
   }
 
-  _writeBatch(records) {
+  _persistBatch(records) {
     const buffers = records.map(r => encode(r));
     this.wal.appendBatch(buffers);
     this._walRecords.push(...records);
     this._writeCount += records.length;
-    for (const r of records) this._apply(r);
+    for (const record of records) this._apply(record);
     this.meta.updatedAt = new Date().toISOString();
     this.metrics.record('transaction');
     if (this.options.autoCheckpoint && this.wal.size() > this.options.maxWalSize) {
@@ -477,13 +479,14 @@ export class YouData {
   }
 
   setSchema(collection, schema) {
-    if (!schema || !(schema instanceof Schema)) {
+    if (schema === null || schema === undefined) {
       this._schemas.delete(collection);
       this._write({ op: 'schema-delete', collection });
-    } else {
-      this._schemas.set(collection, schema);
-      this._write({ op: 'schema', collection, fields: schema.fields });
+      return;
     }
+    const normalized = schema instanceof Schema ? schema : new Schema(schema);
+    this._schemas.set(collection, normalized);
+    this._write({ op: 'schema', collection, fields: normalized.fields });
   }
 
   getSchema(collection) { return this._schemas.get(collection) || null; }
@@ -527,10 +530,16 @@ export class YouData {
     const account = this.accounts.get(username);
     if (!account || !verifyPassword(password, account.password)) return null;
     this._rateLimits.delete(username);
+    if (!account.password.includes(':')) {
+      account.password = hashPassword(password);
+      this._write({ op: 'account', username, account });
+    }
     const token = crypto.randomBytes(32).toString('hex');
     this.sessions.set(token, { username, role: account.role, createdAt: Date.now() });
     return { token, username, role: account.role };
   }
+
+  revoke(token) { return this.sessions.delete(token); }
 
   authorize(token, role) {
     const session = this.sessions.get(token);
@@ -719,9 +728,5 @@ export class Gateway {
 }
 
 export function open(file = './youdata.ydb', options) {
-  const db = new YouData(file, options);
-  if (!db.lock.acquire()) {
-    throw new Error(`Cannot acquire lock on ${file}. Another process may be using it.`);
-  }
-  return db;
+  return new YouData(file, options);
 }

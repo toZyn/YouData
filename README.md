@@ -70,7 +70,19 @@ values.mget(['name', 'views']);
 values.setWithTTL('temporary', { active: true }, 60_000);
 ```
 
-Collections also support queries, schemas, indexes, transactions, lists, sets, hashes, and generated keys through `addWithKey()`.
+Collections also support queries, schemas, indexes, transactions, lists, sets, hashes, generated keys through `addWithKey()`, numeric counters, and TTL.
+
+For concurrent application processes, use `YouDataClientPool` from `youdata/pool`. The pool distributes requests across persistent connections without opening the database file in application workers.
+
+## Integrity and benchmark
+
+WAL v2 records include CRC32 checksums and preserve compatibility with legacy WAL records. Run the local throughput benchmark with:
+
+```bash
+npm run benchmark
+```
+
+The result depends on Node.js, filesystem, durability settings, hardware, and record size. It is not a universal performance claim.
 
 ## SQL API
 

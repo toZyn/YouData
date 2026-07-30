@@ -75,34 +75,61 @@ export class Collection {
 
   get size() { return this.db._collection(this.name).size; }
 
+  _purgeExpired() {
+    const items = this.db._collection(this.name);
+    const now = Date.now();
+    for (const [key, item] of items) {
+      if (item.expiresAt && item.expiresAt <= now) {
+        items.delete(key);
+        this.db._updateIndexes(this.name, key, null, item.value);
+      }
+    }
+  }
+
   get(key) {
+    this._purgeExpired();
     this.db.metrics.record('read');
     return clone(this.db._collection(this.name).get(String(key))?.value);
   }
 
-  has(key) { return this.db._collection(this.name).has(String(key)); }
+  has(key) { this._purgeExpired(); return this.db._collection(this.name).has(String(key)); }
 
-  set(key, value) {
+  set(key, value, options = {}) {
     if (!value || typeof value !== 'object' || Array.isArray(value))
       throw new TypeError('Value must be an object');
     const schema = this.db._schemas.get(this.name);
     if (schema) schema.validate(value);
     const sk = String(key);
+    const ttl = options?.ttl ?? options?.ttlMs;
+    if (ttl !== undefined && (!Number.isFinite(ttl) || ttl < 0)) throw new TypeError('TTL must be a non-negative number');
+    const record = { op: 'set', collection: this.name, key: sk, value, expiresAt: ttl === undefined ? null : Date.now() + ttl };
     if (this._tx) {
-      this._tx.records.push({ op: 'set', collection: this.name, key: sk, value });
-      this._tx._apply({ op: 'set', collection: this.name, key: sk, value });
+      this._tx.records.push(record);
+      this._tx._apply(record);
     } else {
-      this.db._write({ op: 'set', collection: this.name, key: sk, value });
+      this.db._write(record);
     }
     return this;
   }
 
+  setWithTTL(key, value, ttl) { return this.set(key, value, { ttl }); }
+  ttl(key) { this._purgeExpired(); const item = this.db._collection(this.name).get(String(key)); return item ? (item.expiresAt ? Math.max(0, item.expiresAt - Date.now()) : -1) : -2; }
   add(value, key = value.id ?? crypto.randomUUID()) { return this.set(key, value); }
+  addWithKey(value, key = value.id ?? crypto.randomUUID()) { this.set(key, value); return key; }
 
-  addWithKey(value, key = value.id ?? crypto.randomUUID()) {
-    this.set(key, value);
-    return key;
+  _typed(key, type, initial) {
+    const current = this.get(key);
+    if (!current) { this.set(key, { __youdataType: type, value: initial }); return initial; }
+    if (current.__youdataType !== type) throw new TypeError(`Key is not a ${type}`);
+    return current.value;
   }
+
+  list(key) { return this._typed(key, 'list', []).slice(); }
+  rpush(key, ...values) { const list = this.list(key); list.push(...values); this.set(key, { __youdataType: 'list', value: list }); return list.length; }
+  hgetall(key) { return { ...this._typed(key, 'hash', {}) }; }
+  hset(key, field, value) { const hash = this.hgetall(key); const added = Object.prototype.hasOwnProperty.call(hash, field) ? 0 : 1; hash[field] = value; this.set(key, { __youdataType: 'hash', value: hash }); return added; }
+  smembers(key) { return [...new Set(this._typed(key, 'set', []))]; }
+  sadd(key, ...values) { const set = new Set(this.smembers(key)); const before = set.size; for (const value of values) set.add(value); this.set(key, { __youdataType: 'set', value: [...set] }); return set.size - before; }
 
   delete(key) {
     if (!this.has(key)) return false;
@@ -117,9 +144,10 @@ export class Collection {
   }
 
   clear() { for (const key of this.keys()) this.delete(key); return this; }
-  keys() { return [...this.db._collection(this.name).keys()]; }
+  keys() { this._purgeExpired(); return [...this.db._collection(this.name).keys()]; }
 
   values() {
+    this._purgeExpired();
     return [...this.db._collection(this.name).values()].map(item => clone(item.value));
   }
 
@@ -362,7 +390,7 @@ export class YouData {
     if (record.op === 'set') {
       const collection = this._collection(record.collection);
       const old = collection.get(record.key);
-      collection.set(record.key, { value: record.value, timestamp: Date.now() });
+      collection.set(record.key, { value: record.value, timestamp: Date.now(), expiresAt: record.expiresAt || null });
       this._updateIndexes(record.collection, record.key, record.value, old?.value);
       return;
     }
@@ -448,7 +476,7 @@ export class YouData {
     const records = [{ op: 'meta', meta: this.meta }];
     for (const [collection, items] of this.collections) {
       for (const [key, item] of items) {
-        records.push({ op: 'set', collection, key, value: item.value });
+        if (!item.expiresAt || item.expiresAt > Date.now()) records.push({ op: 'set', collection, key, value: item.value, expiresAt: item.expiresAt || null });
       }
     }
     for (const [username, account] of this.accounts) {

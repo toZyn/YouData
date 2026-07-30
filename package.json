@@ -41,9 +41,10 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "files": [
-    "src",
-    "docs",
+    "LICENSE",
     "README.md",
-    "LICENSE"
+    "docs",
+    "docs/DEPLOYMENT.md",
+    "src"
   ]
 }

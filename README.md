@@ -51,4 +51,8 @@ The file is a portable `.ydb` binary containing the complete database. Writes ar
 
 ## License
 
-MIT
+YouData is distributed under the **YouData Personal Use License**.
+
+You may use and modify it for personal, private, and non-commercial purposes. Private forks and private copies are allowed. You may not publish, redistribute, sublicense, sell, release, or offer the original or a modified fork as a public package, public service, hosted service, or commercial product.
+
+See [`LICENSE`](LICENSE) for the complete terms. Copyright © 2026 SoyMaycol (Zyn).

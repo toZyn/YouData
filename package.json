@@ -13,13 +13,15 @@
     "./schema": "./src/schema.js",
     "./server": "./src/server.js",
     "./client": "./src/client.js",
-    "./sql": "./src/sql.js"
+    "./sql": "./src/sql.js",
+    "./pool": "./src/pool.js"
   },
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "benchmark": "node benchmark/throughput.js"
   },
   "keywords": [
     "database",
@@ -43,6 +45,7 @@
   "files": [
     "LICENSE",
     "README.md",
+    "benchmark",
     "docs",
     "docs/DEPLOYMENT.md",
     "src"

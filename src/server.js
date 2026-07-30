@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 import net from 'node:net';
 import { open } from './index.js';
+import { SQLDatabase } from './sql.js';
 
 export class YouDataServer {
   constructor(file = './youdata.ydb', options = {}) {
     this.db = open(file, options.db);
+    this.sql = new SQLDatabase(this.db);
     this.host = options.host ?? '127.0.0.1';
     this.port = options.port ?? 6380;
     this.server = net.createServer(socket => this._connection(socket));
@@ -95,6 +97,7 @@ export class YouDataServer {
       for (const subscriber of subscribers) this._reply(subscriber, null, { event: 'message', channel, message });
       return this._reply(client, id, subscribers.size);
     }
+    if (op === 'sql') return this._reply(client, id, this.sql.execute(args.statement));
     if (op === 'stats') return this._reply(client, id, this.db.stats());
     if (op === 'metrics') return this._reply(client, id, this.db.metricsSnapshot());
     if (op === 'get') return this._reply(client, id, this.db.collection(args.collection).get(args.key));

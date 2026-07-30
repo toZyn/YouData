@@ -13,6 +13,7 @@ test('persists collections and compacts', () => {
   db.collection('users').delete('1');
   assert.equal(db.collection('users').count({ score: { $gte: 20 } }), 1);
   db.compact();
+  db.close();
   const restored = open(file);
   assert.equal(restored.collection('users').get('1'), undefined);
   assert.equal(restored.collection('users').get('2').name, 'Ana');

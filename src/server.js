@@ -59,7 +59,7 @@ export class YouDataServer {
     let body = '';
     request.on('data', chunk => { body += chunk; if (body.length > this.maxRequestSize) request.destroy(); });
     request.on('end', async () => {
-      try { const input = JSON.parse(body || '{}'); const client = { socket: { destroyed: false }, http: response }; await this._execute(client, input); }
+      try { const input = JSON.parse(body || '{}'); const client = { socket: { destroyed: false }, http: response, token: request.headers.authorization?.replace(/^Bearer\s+/i, '') || input.token || null, subscriptions: new Set() }; await this._execute(client, input); }
       catch (error) { if (!response.writableEnded) { response.writeHead(400, { 'content-type': 'application/json' }); response.end(JSON.stringify({ error: error.message })); } }
     });
   }
@@ -180,7 +180,7 @@ export class YouDataServer {
   stop() {
     for (const client of this.clients) client.socket.destroy();
     this.db.close();
-    return new Promise(resolve => this.server.close(resolve));
+    return new Promise(resolve => this.httpServer.close(() => this.server.close(resolve)));
   }
 }
 

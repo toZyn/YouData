@@ -67,3 +67,23 @@ await client.sql("DELETE FROM users WHERE name = 'Maycol'");
 ```
 
 This is not full MySQL compatibility. It intentionally supports basic single-collection operations only.
+
+## WebSocket and HTTP
+
+The server exposes a native WebSocket endpoint at `ws://HOST:HTTP_PORT/ws` and a JSON HTTP endpoint at `http://HOST:HTTP_PORT/api`. WebSocket clients send the same request objects as TCP clients, for example:
+
+```js
+const socket = new WebSocket('ws://127.0.0.1:6381/ws');
+socket.onmessage = event => console.log(JSON.parse(event.data));
+socket.onopen = () => socket.send(JSON.stringify({ id: 1, op: 'health', args: {} }));
+```
+
+HTTP example:
+
+```bash
+curl -X POST http://127.0.0.1:6381/api \
+  -H 'content-type: application/json' \
+  -d '{"id":1,"op":"health","args":{}}'
+```
+
+The server also supports `setnx` and atomic `incr` counter records.

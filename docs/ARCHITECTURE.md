@@ -38,3 +38,7 @@ Replication, consensus, failover, sharding, and cluster membership require multi
 ## Design goal
 
 YouData provides one general API across local embedded access and network access while keeping storage portable, dependencies minimal, and the correctness boundary explicit.
+
+## WAL integrity
+
+WAL v2 frames include a magic marker, payload length, CRC32 checksum, and JSON payload. Complete legacy frames remain readable for migration compatibility. An incomplete final frame is treated as a crash tail; a checksum failure in a complete frame is reported as corruption instead of silently discarding data.

@@ -95,9 +95,11 @@ export class Collection {
   has(key) { this._purgeExpired(); return this.db._collection(this.name).has(String(key)); }
 
   set(key, value, options = {}) {
-    if (!value || typeof value !== 'object' || Array.isArray(value))
-      throw new TypeError('Value must be an object');
+    if (value === undefined || typeof value === 'function' || typeof value === 'symbol' || typeof value === 'bigint')
+      throw new TypeError('Value must be JSON-compatible');
     const schema = this.db._schemas.get(this.name);
+    if (schema && (value === null || typeof value !== 'object' || Array.isArray(value)))
+      throw new TypeError('Schema collections require object values');
     if (schema) schema.validate(value);
     const sk = String(key);
     const ttl = options?.ttl ?? options?.ttlMs;
@@ -114,8 +116,11 @@ export class Collection {
 
   setWithTTL(key, value, ttl) { return this.set(key, value, { ttl }); }
   ttl(key) { this._purgeExpired(); const item = this.db._collection(this.name).get(String(key)); return item ? (item.expiresAt ? Math.max(0, item.expiresAt - Date.now()) : -1) : -2; }
-  add(value, key = value.id ?? crypto.randomUUID()) { return this.set(key, value); }
-  addWithKey(value, key = value.id ?? crypto.randomUUID()) { this.set(key, value); return key; }
+  add(value, key = value && typeof value === 'object' && !Array.isArray(value) ? value.id ?? crypto.randomUUID() : crypto.randomUUID()) { return this.set(key, value); }
+  addWithKey(value, key = value && typeof value === 'object' && !Array.isArray(value) ? value.id ?? crypto.randomUUID() : crypto.randomUUID()) { this.set(key, value); return key; }
+  mget(keys) { return keys.map(key => this.get(key)); }
+  setnx(key, value, options = {}) { if (this.has(key)) return false; this.set(key, value, options); return true; }
+  incr(key, amount = 1) { const current = this.get(key); const value = current === undefined ? 0 : current; if (!Number.isFinite(value) || !Number.isFinite(amount)) throw new TypeError('Counter values must be numeric'); const next = value + amount; this.set(key, next); return next; }
 
   _typed(key, type, initial) {
     const current = this.get(key);

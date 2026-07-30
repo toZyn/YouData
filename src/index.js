@@ -355,8 +355,10 @@ export class YouData {
   _apply(record) {
     if (record.op === 'meta') { this.meta = record.meta; return; }
     if (record.op === 'set') {
-      this._collection(record.collection).set(record.key, { value: record.value, timestamp: Date.now() });
-      this._updateIndexes(record.collection, record.key, record.value, null);
+      const collection = this._collection(record.collection);
+      const old = collection.get(record.key);
+      collection.set(record.key, { value: record.value, timestamp: Date.now() });
+      this._updateIndexes(record.collection, record.key, record.value, old?.value);
       return;
     }
     if (record.op === 'delete') {

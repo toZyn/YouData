@@ -11,6 +11,8 @@ export class YouDataServer {
     this.clients = new Set();
     this.subscribers = new Map();
     this.queue = Promise.resolve();
+    this.maxRequestSize = options.maxRequestSize ?? 1_048_576;
+    this.writeOperations = new Set(['set', 'add', 'delete', 'rpush', 'hset', 'sadd']);
   }
 
   start() {
@@ -27,10 +29,14 @@ export class YouDataServer {
     socket.on('data', chunk => {
       client.buffer += chunk;
       let index;
+      if (client.buffer.length > this.maxRequestSize) {
+        socket.destroy();
+        return;
+      }
       while ((index = client.buffer.indexOf('\n')) >= 0) {
         const line = client.buffer.slice(0, index).trim();
         client.buffer = client.buffer.slice(index + 1);
-        if (line) this._request(client, line);
+        if (line && Buffer.byteLength(line) <= this.maxRequestSize) this._request(client, line);
       }
     });
     socket.on('close', () => this._remove(client));
@@ -49,7 +55,13 @@ export class YouDataServer {
   _request(client, line) {
     let request;
     try { request = JSON.parse(line); } catch { return this._reply(client, null, null, 'Invalid JSON'); }
-    this.queue = this.queue.then(() => this._execute(client, request)).catch(error => this._reply(client, request.id ?? null, null, error.message));
+    if (!this.writeOperations.has(request.op)) {
+      Promise.resolve(this._execute(client, request)).catch(error => this._reply(client, request.id ?? null, null, error.message));
+      return;
+    }
+    this.queue = this.queue
+      .then(() => this._execute(client, request))
+      .catch(error => this._reply(client, request.id ?? null, null, error.message));
   }
 
   async _execute(client, request) {

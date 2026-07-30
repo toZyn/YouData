@@ -56,3 +56,11 @@ YouData is distributed under the **YouData Personal Use License**.
 You may use and modify it for personal, private, and non-commercial purposes. Private forks and private copies are allowed. You may not publish, redistribute, sublicense, sell, release, or offer the original or a modified fork as a public package, public service, hosted service, or commercial product.
 
 See [`LICENSE`](LICENSE) for the complete terms. Copyright © 2026 SoyMaycol (Zyn).
+
+## Concurrent server mode
+
+For multiple processes, run `youdata-server` and connect using `YouDataClient`. The server is the single owner of the `.ydb` file and serializes writes through a TCP JSON protocol. Direct `open()` remains intended for one process.
+
+Server mode includes TTL, pub/sub, and lightweight persisted lists, sets, and hashes. It is not wire-compatible with Redis and does not claim full SQL, replication, failover, or cluster support.
+
+See [`docs/SERVER.md`](docs/SERVER.md).

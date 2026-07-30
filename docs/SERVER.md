@@ -1,89 +1,94 @@
 # YouData Server
 
-The server is the single owner of a database file. Clients connect through TCP and never open the file directly, allowing multiple applications to read and write concurrently through one serialized write queue.
+YouData Server is the general-purpose network mode for applications that need concurrent clients, durable writes, and real-time events. It is not limited to social applications.
 
-Start it with:
+## Start
 
 ```bash
 youdata-server ./data/main.ydb
 ```
 
-The protocol is newline-delimited JSON. Every request has an `id`, an `op`, and an `args` object.
+The server owns the database file. Applications should connect through a client or a supported network transport instead of opening the same file from several processes.
+
+## Transports
+
+### TCP
+
+The TCP protocol uses newline-delimited JSON. Each request contains an `id`, an `op`, and an `args` object.
 
 ```json
 {"id":1,"op":"health","args":{}}
-{"id":2,"op":"set","args":{"collection":"users","key":"u1","value":{"name":"Maycol"}},"token":"..."}
 ```
 
-## Client
+Node.js client example:
 
 ```js
 import { YouDataClient } from 'youdata/client';
 
-const client = new YouDataClient({ port: 6380 });
+const client = new YouDataClient({
+  host: '127.0.0.1',
+  port: 6380
+});
+
 await client.auth('admin', 'password');
 await client.set('users', 'u1', { name: 'Maycol' });
 ```
 
-## TTL
+### HTTP JSON
+
+The HTTP transport accepts the same operation objects through the configured API endpoint. Use the actual host and HTTP port selected by your server configuration; applications should not hard-code an endpoint that was not configured for their deployment.
+
+### WebSocket
+
+The native WebSocket transport accepts the same request objects and returns JSON responses. It can be used for bidirectional application events, live updates, chat, collaboration, monitoring, and other real-time workloads.
+
+## Operations
+
+The server exposes key/value access, queries, mutations, generated keys, TTL, batch reads, counters, lists, sets, hashes, Pub/Sub, metrics, authentication, and the constrained SQL API.
 
 ```js
-users.setWithTTL('session', { active: true }, 60_000);
-users.ttl('session');
+await client.setnx('users', 'username:maycol', { userId: 'u1' });
+await client.incr('counters', 'views', 1);
+await client.publish('events', { type: 'updated' });
 ```
-
-Expired keys are removed lazily on access and query. TTL is persisted in the WAL and checkpoints.
 
 ## Pub/Sub
 
 ```js
-await client.subscribe('events', message => console.log(message));
-await client.publish('events', { type: 'created' });
+await client.subscribe('events', message => {
+  console.log(message);
+});
+
+await client.publish('events', {
+  type: 'record-created'
+});
 ```
 
-## Data structures
+Pub/Sub is process-local to the running server. It is not a replacement for durable event storage or cross-node replication.
 
-Collections provide lightweight persisted structures:
-
-- `rpush(key, ...values)` and `list(key)`
-- `sadd(key, ...values)` and `smembers(key)`
-- `hset(key, field, value)` and `hgetall(key)`
-
-These are server-managed operations, not claims of full Redis protocol compatibility.
-
-## Concurrency boundary
-
-Direct `open()` remains a single-process API. For multiple processes, run one `YouDataServer` process and connect with `YouDataClient`. This avoids concurrent direct file access and serializes mutations. Replication, failover, clustering, SQL joins, and a complete ACID isolation engine are not included in this release.
-
-## SQL API
-
-Server clients can execute the constrained SQL API:
+## TTL and structures
 
 ```js
-await client.sql("SELECT * FROM users WHERE age >= 18 LIMIT 20");
-await client.sql("INSERT INTO users (name, age) VALUES ('Maycol', 25)");
-await client.sql("UPDATE users SET age = 26 WHERE name = 'Maycol'");
-await client.sql("DELETE FROM users WHERE name = 'Maycol'");
+users.setWithTTL('session', { active: true }, 60_000);
+users.ttl('session');
+users.rpush('queue', 'a', 'b');
+users.hset('profile', 'name', 'Maycol');
+users.sadd('roles', 'admin', 'developer');
 ```
 
-This is not full MySQL compatibility. It intentionally supports basic single-collection operations only.
+## SQL
 
-## WebSocket and HTTP
+The server supports basic single-collection `SELECT`, `INSERT`, `UPDATE`, and `DELETE` statements with simple conditions and `LIMIT`. It is intentionally constrained and is not full MySQL compatibility.
 
-The server exposes a native WebSocket endpoint at `ws://HOST:HTTP_PORT/ws` and a JSON HTTP endpoint at `http://HOST:HTTP_PORT/api`. WebSocket clients send the same request objects as TCP clients, for example:
+## Concurrency and durability
 
-```js
-const socket = new WebSocket('ws://127.0.0.1:6381/ws');
-socket.onmessage = event => console.log(JSON.parse(event.data));
-socket.onopen = () => socket.send(JSON.stringify({ id: 1, op: 'health', args: {} }));
-```
+- Reads can be served concurrently.
+- Mutations are serialized by the server.
+- Mutations are persisted through the WAL.
+- Checkpoints rebuild the portable database file.
+- TTL metadata is persisted.
+- Direct embedded access remains a single-process mode.
 
-HTTP example:
+## Deployment boundary
 
-```bash
-curl -X POST http://127.0.0.1:6381/api \
-  -H 'content-type: application/json' \
-  -d '{"id":1,"op":"health","args":{}}'
-```
-
-The server also supports `setnx` and atomic `incr` counter records.
+The server is suitable as a general application data service. Replication, consensus, automatic failover, sharding, and cluster membership need explicit multi-node protocols and failure testing; they must not be inferred from a single server process.
